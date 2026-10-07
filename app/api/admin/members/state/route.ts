@@ -19,12 +19,14 @@ export async function GET() {
       mode = await setting("paystack_mode", "test");
     const rows = await db
       .prepare(
-        "SELECT m.*,r.number FROM members m JOIN registrations r ON r.id=m.registration_id WHERE m.mode=? ORDER BY m.created_at DESC",
+        "SELECT m.*,r.number,r.answers FROM members m JOIN registrations r ON r.id=m.registration_id WHERE m.mode=? ORDER BY m.created_at DESC",
       )
       .bind(mode)
-      .all<Member & { number: string }>();
+      .all<Member & { number: string; answers: string }>();
     const members = rows.results.map((m) => ({
       id: m.id,
+      date: m.created_at,
+      answers: m.answers,
       name: m.name,
       email: m.email,
       phone: m.phone,

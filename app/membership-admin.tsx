@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import MemberReport from "./member-report";
 const money = (n: number) => "₦" + Number(n).toLocaleString("en-NG");
 async function api(path: string, body?: unknown) {
   const r = await fetch(
@@ -37,16 +38,20 @@ function downloadCsv(name: string, rows: unknown[][]) {
 export default function MembershipAdmin({
   superAdmin,
   pendingOnly = false,
+  reportsOnly = false,
+  initialFilter = "all",
   onNotice,
 }: {
   superAdmin: boolean;
   pendingOnly?: boolean;
+  reportsOnly?: boolean;
+  initialFilter?: string;
   onNotice: (m: string) => void;
 }) {
   const [data, setData] = useState<any>(null),
     [busy, setBusy] = useState(false),
     [search, setSearch] = useState(""),
-    [filter, setFilter] = useState("all");
+    [filter, setFilter] = useState(initialFilter);
   async function refresh() {
     const d = await api("/api/admin/members/state");
     setData(d);
@@ -67,6 +72,10 @@ export default function MembershipAdmin({
     }
   }
   if (!data) return <p>Loading membership data…</p>;
+  if (reportsOnly)
+    return (
+      <MemberReport rows={data.members} title="Membership reports & export" />
+    );
   if (pendingOnly)
     return (
       <>
@@ -272,15 +281,6 @@ export default function MembershipAdmin({
               onClick={() => action("/api/admin/email/process", {})}
             >
               Process next 5 queued emails
-            </button>
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={() =>
-                action("/api/admin/email/process", { retryFailed: true })
-              }
-            >
-              Retry failed emails
             </button>
             <button
               className="secondary"

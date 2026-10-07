@@ -1,4 +1,6 @@
 import nodemailer from "nodemailer";
+import { readFile } from "node:fs/promises";
+import { brandedMail } from "./mail-branding";
 import { appOrigin, HttpError } from "./security";
 import { database } from "./database";
 export async function sendContinuation(
@@ -17,10 +19,23 @@ export async function sendContinuation(
       completed: number;
     }>();
   if (!p || p.completed || (!force && p.email_sent_at)) return;
+  const mail = brandedMail(
+    p.email,
+    "Complete your FEDMOGA registration",
+    "Your registration payment is confirmed",
+    [
+      "Complete your registration using this private, single-use link.",
+      "Reference: " + reference,
+      "This link expires after 30 days. Do not share it.",
+    ],
+    appOrigin() + "/?continue=" + encodeURIComponent(token),
+    "Complete registration",
+  );
   await sendEmail(
     p.email,
     "Complete your FEDMOGA registration",
     `Your payment has been verified.\n\nComplete your registration using this private, single-use link:\n${appOrigin()}/?continue=${encodeURIComponent(token)}\n\nReference: ${reference}\nThe link expires after 30 days. Do not share it.\n\nFEDMOGA — Knowledge, Discipline and Unity`,
+    mail.html,
   );
   await database()
     .prepare("UPDATE payments SET email_sent_at=? WHERE reference=?")
@@ -65,12 +80,29 @@ export async function sendEmail(
     socketTimeout: 15000,
   });
   try {
+    let brandedHtml =
+      html || brandedMail(to, subject, subject, text.split("\n\n")).html;
+    if (!brandedHtml.includes("cid:fedmoga-logo"))
+      brandedHtml = brandedHtml.replace(
+        /<body([^>]*)>/i,
+        '<body$1><div style="padding:24px;background:#125333"><img src="cid:fedmoga-logo" width="80" height="80" alt="FEDMOGA logo"></div>',
+      );
+    const logo = await readFile(process.cwd() + "/public/logo.jpg");
     const result = await transport.sendMail({
       from: process.env.SMTP_FROM,
       to,
       subject,
       text,
-      ...(html ? { html } : {}),
+      html: brandedHtml,
+      attachments: [
+        {
+          filename: "fedmoga-logo.jpg",
+          content: logo,
+          contentType: "image/jpeg",
+          cid: "fedmoga-logo",
+          contentDisposition: "inline",
+        },
+      ],
     });
     if (!result.accepted?.length || result.rejected?.length)
       throw new HttpError(

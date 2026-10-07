@@ -127,18 +127,56 @@ test(
       401,
     );
     const pendingId = crypto.randomUUID();
-    await db.prepare("INSERT INTO payments(id,full_name,email,phone,amount,status,created_at,completed,reference,mode,amount_kobo) VALUES(?,?,?,?,?,?,?,?,?,?,?)")
-      .bind(pendingId, "Pending <Member>", "pending-v2@example.com", "08098765432", 5000, "PENDING", new Date().toISOString(), 0, "PENDING-" + pendingId, "test", 500000).run();
-    assert.equal((await call("/api/admin/payments/remind", { id: pendingId }, memberCookie)).status, 401);
-    assert.equal((await call("/api/admin/payments/remind", { id: pendingId }, root)).status, 200);
-    const pendingJob = await db.prepare("SELECT payload_cipher FROM email_jobs WHERE payment_id=?").bind(pendingId).first<{payload_cipher: string}>();
+    await db
+      .prepare(
+        "INSERT INTO payments(id,full_name,email,phone,amount,status,created_at,completed,reference,mode,amount_kobo) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+      )
+      .bind(
+        pendingId,
+        "Pending <Member>",
+        "pending-v2@example.com",
+        "08098765432",
+        5000,
+        "PENDING",
+        new Date().toISOString(),
+        0,
+        "PENDING-" + pendingId,
+        "test",
+        500000,
+      )
+      .run();
+    assert.equal(
+      (
+        await call(
+          "/api/admin/payments/remind",
+          { id: pendingId },
+          memberCookie,
+        )
+      ).status,
+      401,
+    );
+    assert.equal(
+      (await call("/api/admin/payments/remind", { id: pendingId }, root))
+        .status,
+      200,
+    );
+    const pendingJob = await db
+      .prepare("SELECT payload_cipher FROM email_jobs WHERE payment_id=?")
+      .bind(pendingId)
+      .first<{ payload_cipher: string }>();
     assert.ok(pendingJob);
-    const pendingMail = JSON.parse(await decryptToken(pendingJob.payload_cipher));
+    const pendingMail = JSON.parse(
+      await decryptToken(pendingJob.payload_cipher),
+    );
     assert.equal(pendingMail.to, "pending-v2@example.com");
     assert.match(pendingMail.html, /Pending &lt;Member&gt;/);
     assert.match(pendingMail.text, /\/api\/paystack\/resume\?token=/);
-    const pendingState = await (await call("/api/admin/members/state", undefined, root)).json();
-    const payer = pendingState.pending.find((entry: {id: string}) => entry.id === pendingId);
+    const pendingState = await (
+      await call("/api/admin/members/state", undefined, root)
+    ).json();
+    const payer = pendingState.pending.find(
+      (entry: { id: string }) => entry.id === pendingId,
+    );
     assert.equal(payer.email, "pending-v2@example.com");
     assert.equal(payer.phone, "08098765432");
     const other = await db

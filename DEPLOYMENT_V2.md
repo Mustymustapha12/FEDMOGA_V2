@@ -51,3 +51,13 @@ In Memberships & dues, choose a member and plan, enter actual bank amount, payme
 ## Validation
 
 The project includes the V1 integration suite plus calendar and V2 tests. They exercise real MySQL and HTTP sessions with a dedicated database ending in _test and mock Paystack/SMTP responses. Live credentials and real bank payments are not used. Before production, verify one complete test registration, activation, dues checkout, repeated verification, manual bank approval, SMTP receipt, scheduler run and imported V1 member access on your actual Hostinger domain.
+
+## Branded mail, sidebar and reports
+
+Every outgoing email includes the FEDMOGA logo as an inline image attachment, association name, motto and green branding, including SMTP tests and registration continuation links. The public/logo.jpg file must be included in the deployed application. Existing queued email bodies also receive the logo when sent.
+
+Registration name, email and phone fields are read-only. The server saves those values from the verified payment record even if a submission is altered. Other registration answers remain editable.
+
+Admins start on Dashboard and use the left menu for Registrations, Paid Membership, Members & Dues, Reports & Export, Pending Payments and configuration. Members have Dashboard, Pay Dues / Renew, My Payments and My Profile. On phones the sidebar becomes a compact menu above the content.
+
+Registrations and membership reports offer search, mode, graduation year, country, profession and registration-date filters; membership reports also filter by status and plan. Membership reports use the currently selected checkout mode. CSV export uses exactly the filtered rows and selected order. Sort by registration date, registration number or member name; ascending numbering is 1 to the filtered total and descending numbering is the filtered total to 1. Permanent registration numbers are never changed. Registration reports include all stored registrations, rather than only the latest 500 entries.

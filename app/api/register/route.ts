@@ -19,12 +19,14 @@ export async function POST(req: Request) {
     const result = await transaction(async (db) => {
       const p = await db
         .prepare(
-          "SELECT id,email,completed,token_hash,token_expires_at,status,mode FROM payments WHERE id=? FOR UPDATE",
+          "SELECT id,full_name,phone,email,completed,token_hash,token_expires_at,status,mode FROM payments WHERE id=? FOR UPDATE",
         )
         .bind(paymentId)
         .first<{
           id: string;
           email: string;
+          full_name: string;
+          phone: string;
           completed: number;
           token_hash: string | null;
           token_expires_at: string | null;
@@ -44,7 +46,20 @@ export async function POST(req: Request) {
           "This payment link is invalid, expired or already used",
           403,
         );
-      const clean = validateAnswers(sections, answers, p.email),
+      const clean = validateAnswers(
+          sections,
+          {
+            ...(answers &&
+            typeof answers === "object" &&
+            !Array.isArray(answers)
+              ? answers
+              : {}),
+            fullName: p.full_name,
+            email: p.email,
+            phone: p.phone,
+          },
+          p.email,
+        ),
         id = crypto.randomUUID(),
         number =
           "FEDMOGA-" +

@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import ManualPayments from "./manual-payments";
 import MembershipAdmin from "./membership-admin";
+import AdminDashboard from "./dashboard";
+import MemberReport from "./member-report";
 type Field = { id: string; label: string; type: string; required: boolean };
 type Section = { title: string; fields: Field[] };
 type Payment = {
@@ -72,7 +74,7 @@ async function api(path: string, body?: unknown, method = "POST") {
 }
 export default function Portal() {
   const [view, setView] = useState("home"),
-    [tab, setTab] = useState("registrations"),
+    [tab, setTab] = useState("dashboard"),
     [fee, setFee] = useState(5000),
     [form, setForm] = useState<Section[]>(defaults),
     [payer, setPayer] = useState({ name: "", email: "", phone: "" }),
@@ -441,1084 +443,1109 @@ export default function Portal() {
               <small>Knowledge, Discipline and Unity</small>
             </span>
           </button>
-          <nav className="nav">
-            <button
-              className={view !== "admin" ? "active" : ""}
-              onClick={() => setView("home")}
-            >
-              Register
-            </button>
-            <a href="/member" className="secondary">
-              Member sign in
-            </a>
-            <button
-              className={view === "admin" ? "active" : ""}
-              onClick={openAdmin}
-            >
-              Admin
-            </button>
-          </nav>
         </div>
       </header>
-      <main className="wrap">
-        <div className="feedback-region" aria-live="polite" aria-atomic="true">
-          {notice && (
-            <div
-              id="feedback-alert"
-              className={`alert alert-${noticeKind}`}
-              role={noticeKind === "danger" ? "alert" : "status"}
-            >
-              <span className="alert-icon" aria-hidden="true">
-                {noticeKind === "danger"
-                  ? "!"
-                  : noticeKind === "success"
-                    ? "✓"
-                    : noticeKind === "warning"
-                      ? "⚠"
-                      : "i"}
-              </span>
-              <div>
-                <strong>
-                  {noticeKind === "danger"
-                    ? "Action needed"
-                    : noticeKind === "success"
-                      ? "Success"
-                      : noticeKind === "warning"
-                        ? "Please check"
-                        : "Please wait"}
-                </strong>
-                <p>{notice.replace(/^Error:\s*/, "")}</p>
-              </div>
+      <div className="app-shell">
+        <aside className="sidebar" aria-label="Main menu">
+          <h2>
+            {view === "admin" && state ? "Administration" : "FEDMOGA portal"}
+          </h2>
+          {view === "admin" && state ? (
+            Object.entries({
+              dashboard: "Dashboard",
+              registrations: "Registrations",
+              paid: "Paid Membership",
+              memberships: "Members & Dues",
+              reports: "Reports & Export",
+              incomplete: "Paid — Finish Registration",
+              abandoned: "Pending Payments",
+              payments: "Registration Payments",
+              manual: "Approve Previous Payment",
+              builder: "Registration Form",
+              settings: "Settings",
+              account: "My Account",
+              ...(state.admin.role === "SUPER_ADMIN"
+                ? { users: "Admin Users" }
+                : {}),
+            }).map(([key, label]) => (
               <button
-                type="button"
-                className="alert-close"
-                aria-label="Dismiss message"
-                onClick={() => setNotice("")}
+                key={key}
+                className={tab === key ? "active" : ""}
+                aria-current={tab === key ? "page" : undefined}
+                onClick={() => {
+                  setTab(key);
+                  setSelected(null);
+                  setNotice("");
+                }}
               >
-                ×
+                {label}
+              </button>
+            ))
+          ) : (
+            <>
+              <button
+                className={view === "home" ? "active" : ""}
+                onClick={() => setView("home")}
+              >
+                Dashboard / Registration
+              </button>
+              <a href="/member">Member Sign In</a>
+              <button
+                className={view === "admin" ? "active" : ""}
+                onClick={openAdmin}
+              >
+                Admin Sign In
+              </button>
+            </>
+          )}
+          {view === "admin" && state && (
+            <button onClick={signOut}>Sign Out</button>
+          )}
+        </aside>
+        <main className="wrap">
+          <div
+            className="feedback-region"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {notice && (
+              <div
+                id="feedback-alert"
+                className={`alert alert-${noticeKind}`}
+                role={noticeKind === "danger" ? "alert" : "status"}
+              >
+                <span className="alert-icon" aria-hidden="true">
+                  {noticeKind === "danger"
+                    ? "!"
+                    : noticeKind === "success"
+                      ? "✓"
+                      : noticeKind === "warning"
+                        ? "⚠"
+                        : "i"}
+                </span>
+                <div>
+                  <strong>
+                    {noticeKind === "danger"
+                      ? "Action needed"
+                      : noticeKind === "success"
+                        ? "Success"
+                        : noticeKind === "warning"
+                          ? "Please check"
+                          : "Please wait"}
+                  </strong>
+                  <p>{notice.replace(/^Error:\s*/, "")}</p>
+                </div>
+                <button
+                  type="button"
+                  className="alert-close"
+                  aria-label="Dismiss message"
+                  onClick={() => setNotice("")}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+
+          {view === "home" && (
+            <div className="hero">
+              <div className="intro">
+                <span className="eyebrow">
+                  Federal Government Girls College Minjibir Old Girls
+                  Association
+                </span>
+                <h1>Stay connected to the women who shared your journey.</h1>
+                <p>
+                  Join the FGGC Minjibir Alumni community to strengthen our
+                  membership database, stay in touch, and support the activities
+                  and development of the association.
+                </p>
+                <p>
+                  Please complete your details accurately. Payment is verified
+                  before the registration form becomes available.
+                </p>
+                <div className="feature">
+                  ✓ &nbsp; Payment → Registration → Confirmation
+                </div>
+              </div>
+              <div className="card">
+                <div className="steps">
+                  <b>1 Payment</b> → 2 Registration → 3 Complete
+                </div>
+                <h2>Membership registration</h2>
+                <div className="fee">
+                  <small>
+                    Registration fee {mode === "test" ? "(test mode)" : ""}
+                  </small>
+                  <strong>{money(fee)}</strong>
+                </div>
+                <form onSubmit={begin}>
+                  <label htmlFor="payer-name">Full name</label>
+                  <input
+                    id="payer-name"
+                    required
+                    value={payer.name}
+                    onChange={(e) =>
+                      setPayer({ ...payer, name: e.target.value })
+                    }
+                  />
+                  <label htmlFor="payer-email">Email address</label>
+                  <input
+                    id="payer-email"
+                    required
+                    type="email"
+                    value={payer.email}
+                    onChange={(e) =>
+                      setPayer({ ...payer, email: e.target.value })
+                    }
+                  />
+                  <label htmlFor="payer-phone">Phone number</label>
+                  <input
+                    id="payer-phone"
+                    required
+                    type="tel"
+                    value={payer.phone}
+                    onChange={(e) =>
+                      setPayer({ ...payer, phone: e.target.value })
+                    }
+                  />
+                  <button
+                    className="primary wide"
+                    disabled={busy || !checkoutReady}
+                  >
+                    {mode === "test"
+                      ? "Pay with Paystack test"
+                      : "Pay with Paystack"}
+                  </button>
+                </form>
+                <p className="notice">
+                  {!checkoutReady
+                    ? "Checkout is not configured yet. Contact FEDMOGA."
+                    : mode === "test"
+                      ? "Paystack test checkout does not collect real money."
+                      : "Payment is processed securely by Paystack."}
+                </p>
+                <details>
+                  <summary>
+                    Already paid? Verify and continue registration
+                  </summary>
+                  <form onSubmit={recover}>
+                    <label>Payment email</label>
+                    <input name="email" type="email" required />
+                    <label>Paystack reference</label>
+                    <input name="reference" required placeholder="FEDMOGA-…" />
+                    <button className="secondary" disabled={busy}>
+                      {busy ? "Verifying…" : "Verify payment and register"}
+                    </button>
+                  </form>
+                </details>
+              </div>
+            </div>
+          )}
+          {view === "register" && (
+            <div className="card" style={{ maxWidth: 760, margin: "auto" }}>
+              <div className="steps">
+                1 Payment → <b>2 Registration</b> → 3 Complete
+              </div>
+              <h1>Complete your registration</h1>
+              <p className="success">Verified payment: {paymentId}</p>
+              <p id="payment-identity-note">
+                Your name, email and phone are taken from your verified payment
+                and cannot be edited here.
+              </p>
+              <form onSubmit={submitRegistration}>
+                {form.map((s, si) => (
+                  <section className="section" key={si}>
+                    <h2>{s.title}</h2>
+                    {s.fields.map((f) => (
+                      <div key={f.id}>
+                        <label htmlFor={"f-" + f.id}>{f.label}</label>
+                        {f.type === "textarea" ? (
+                          <textarea
+                            id={"f-" + f.id}
+                            name={f.id}
+                            required={f.required}
+                          />
+                        ) : (
+                          <input
+                            id={"f-" + f.id}
+                            name={f.id}
+                            type={f.type}
+                            required={f.required}
+                            readOnly={["fullName", "email", "phone"].includes(
+                              f.id,
+                            )}
+                            aria-describedby={
+                              ["fullName", "email", "phone"].includes(f.id)
+                                ? "payment-identity-note"
+                                : undefined
+                            }
+                            defaultValue={
+                              f.id === "fullName"
+                                ? payer.name
+                                : f.id === "email"
+                                  ? payer.email
+                                  : f.id === "phone"
+                                    ? payer.phone
+                                    : undefined
+                            }
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </section>
+                ))}
+                <button className="primary" disabled={busy}>
+                  Complete registration
+                </button>
+              </form>
+            </div>
+          )}
+          {view === "complete" && (
+            <div className="card" style={{ maxWidth: 680, margin: "auto" }}>
+              <div className="steps">
+                1 Payment → 2 Registration → <b>3 Complete</b>
+              </div>
+              <h1>Registration complete</h1>
+              <p>
+                Your member account is ready. Check your email to verify it and
+                set your password, then <a href="/member">sign in</a> to pay
+                dues. You can also request an activation link from the member
+                sign-in page.
+              </p>
+              <p>
+                Your registration number is{" "}
+                <strong>{registrationNumber}</strong>.
+              </p>
+              <p className="notice">
+                Please save your registration number. Your membership entry has
+                been recorded.
+              </p>
+              <button className="primary" onClick={() => setView("home")}>
+                Return to home
               </button>
             </div>
           )}
-        </div>
-
-        {view === "home" && (
-          <div className="hero">
-            <div className="intro">
-              <span className="eyebrow">
-                Federal Government Girls College Minjibir Old Girls Association
-              </span>
-              <h1>Stay connected to the women who shared your journey.</h1>
-              <p>
-                Join the FGGC Minjibir Alumni community to strengthen our
-                membership database, stay in touch, and support the activities
-                and development of the association.
-              </p>
-              <p>
-                Please complete your details accurately. Payment is verified
-                before the registration form becomes available.
-              </p>
-              <div className="feature">
-                ✓ &nbsp; Payment → Registration → Confirmation
-              </div>
-            </div>
-            <div className="card">
-              <div className="steps">
-                <b>1 Payment</b> → 2 Registration → 3 Complete
-              </div>
-              <h2>Membership registration</h2>
-              <div className="fee">
-                <small>
-                  Registration fee {mode === "test" ? "(test mode)" : ""}
-                </small>
-                <strong>{money(fee)}</strong>
-              </div>
-              <form onSubmit={begin}>
-                <label htmlFor="payer-name">Full name</label>
-                <input
-                  id="payer-name"
-                  required
-                  value={payer.name}
-                  onChange={(e) => setPayer({ ...payer, name: e.target.value })}
-                />
-                <label htmlFor="payer-email">Email address</label>
-                <input
-                  id="payer-email"
-                  required
-                  type="email"
-                  value={payer.email}
-                  onChange={(e) =>
-                    setPayer({ ...payer, email: e.target.value })
-                  }
-                />
-                <label htmlFor="payer-phone">Phone number</label>
-                <input
-                  id="payer-phone"
-                  required
-                  type="tel"
-                  value={payer.phone}
-                  onChange={(e) =>
-                    setPayer({ ...payer, phone: e.target.value })
-                  }
-                />
-                <button
-                  className="primary wide"
-                  disabled={busy || !checkoutReady}
-                >
-                  {mode === "test"
-                    ? "Pay with Paystack test"
-                    : "Pay with Paystack"}
-                </button>
-              </form>
-              <p className="notice">
-                {!checkoutReady
-                  ? "Checkout is not configured yet. Contact FEDMOGA."
-                  : mode === "test"
-                    ? "Paystack test checkout does not collect real money."
-                    : "Payment is processed securely by Paystack."}
-              </p>
-              <details>
-                <summary>
-                  Already paid? Verify and continue registration
-                </summary>
-                <form onSubmit={recover}>
-                  <label>Payment email</label>
-                  <input name="email" type="email" required />
-                  <label>Paystack reference</label>
-                  <input name="reference" required placeholder="FEDMOGA-…" />
-                  <button className="secondary" disabled={busy}>
-                    {busy ? "Verifying…" : "Verify payment and register"}
-                  </button>
-                </form>
-              </details>
-            </div>
-          </div>
-        )}
-        {view === "register" && (
-          <div className="card" style={{ maxWidth: 760, margin: "auto" }}>
-            <div className="steps">
-              1 Payment → <b>2 Registration</b> → 3 Complete
-            </div>
-            <h1>Complete your registration</h1>
-            <p className="success">Verified payment: {paymentId}</p>
-            <form onSubmit={submitRegistration}>
-              {form.map((s, si) => (
-                <section className="section" key={si}>
-                  <h2>{s.title}</h2>
-                  {s.fields.map((f) => (
-                    <div key={f.id}>
-                      <label htmlFor={"f-" + f.id}>{f.label}</label>
-                      {f.type === "textarea" ? (
-                        <textarea
-                          id={"f-" + f.id}
-                          name={f.id}
-                          required={f.required}
-                        />
-                      ) : (
-                        <input
-                          id={"f-" + f.id}
-                          name={f.id}
-                          type={f.type}
-                          required={f.required}
-                          readOnly={f.id === "email"}
-                          defaultValue={
-                            f.id === "fullName"
-                              ? payer.name
-                              : f.id === "email"
-                                ? payer.email
-                                : f.id === "phone"
-                                  ? payer.phone
-                                  : undefined
-                          }
-                        />
-                      )}
-                    </div>
-                  ))}
-                </section>
-              ))}
-              <button className="primary" disabled={busy}>
-                Complete registration
-              </button>
-            </form>
-          </div>
-        )}
-        {view === "complete" && (
-          <div className="card" style={{ maxWidth: 680, margin: "auto" }}>
-            <div className="steps">
-              1 Payment → 2 Registration → <b>3 Complete</b>
-            </div>
-            <h1>Registration complete</h1>
-            <p>
-              Your member account is ready. Check your email to verify it and
-              set your password, then <a href="/member">sign in</a> to pay dues.
-              You can also request an activation link from the member sign-in
-              page.
-            </p>
-            <p>
-              Your registration number is <strong>{registrationNumber}</strong>.
-            </p>
-            <p className="notice">
-              Please save your registration number. Your membership entry has
-              been recorded.
-            </p>
-            <button className="primary" onClick={() => setView("home")}>
-              Return to home
-            </button>
-          </div>
-        )}
-        {view === "admin" && (
-          <>
-            <span className="eyebrow">FEDMOGA · Administration</span>
-            <h1>Membership overview</h1>
-            {loginState !== "ready" ? (
-              <div className="card" style={{ maxWidth: 630 }}>
-                <h2>Admin sign in</h2>
-                <p>Sign in with your FEDMOGA admin email and password.</p>
-                <form onSubmit={signIn}>
-                  <label htmlFor="login-email">Email</label>
-                  <input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    autoComplete="username"
-                    required
-                  />
-                  <label htmlFor="login-password">Password</label>
-                  <input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    autoComplete="current-password"
-                    required
-                  />
-                  <button
-                    className="primary"
-                    disabled={busy || loginState === "loading"}
-                  >
-                    Sign in
-                  </button>
-                </form>
-              </div>
-            ) : (
-              state && (
-                <>
-                  <p className="notice">
-                    Signed in as {state.admin.email} ({state.admin.role}).
-                    Checkout mode: {state.paystackMode}.{" "}
-                    <button className="secondary" onClick={signOut}>
-                      Sign out
+          {view === "admin" && (
+            <>
+              <span className="eyebrow">FEDMOGA · Administration</span>
+              <h1>Membership overview</h1>
+              {loginState !== "ready" ? (
+                <div className="card" style={{ maxWidth: 630 }}>
+                  <h2>Admin sign in</h2>
+                  <p>Sign in with your FEDMOGA admin email and password.</p>
+                  <form onSubmit={signIn}>
+                    <label htmlFor="login-email">Email</label>
+                    <input
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      autoComplete="username"
+                      required
+                    />
+                    <label htmlFor="login-password">Password</label>
+                    <input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                    />
+                    <button
+                      className="primary"
+                      disabled={busy || loginState === "loading"}
+                    >
+                      Sign in
                     </button>
-                  </p>
-                  <div className="grid">
-                    {[
-                      ["Registrations", state.registrations.length],
-                      ["Payments", state.payments.length],
-                      [
-                        "Paid but incomplete",
-                        state.payments.filter(
-                          (p) => p.status === "SUCCESS" && !p.completed,
-                        ).length,
-                      ],
-                      [
-                        "Verified revenue",
-                        money(
-                          state.payments
-                            .filter((p) => p.status === "SUCCESS")
-                            .reduce((sum, p) => sum + p.amount, 0),
-                        ),
-                      ],
-                    ].map(([label, value]) => (
-                      <div className="metric" key={label}>
-                        <small>{label}</small>
-                        <strong>{value}</strong>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="tabs">
-                    {[
-                      "registrations",
-                      "incomplete",
-                      "payments",
-                      "manual",
-                      "memberships",
-                      "abandoned",
-                      "builder",
-                      "settings",
-                      "account",
-                      ...(state.admin.role === "SUPER_ADMIN" ? ["users"] : []),
-                    ].map((t) => (
-                      <button
-                        key={t}
-                        className={tab === t ? "active" : ""}
-                        onClick={() => {
-                          setTab(t);
-                          setSelected(null);
-                          setNotice("");
-                        }}
-                      >
-                        {(
-                          {
-                            memberships: "Memberships & dues",
-                            abandoned: "Payment not completed",
-                            manual: "Already paid",
-                            incomplete: "Paid but incomplete",
-                            builder: "Form builder",
-                            settings: "Settings",
-                            users: "Admin users",
-                          } as Record<string, string>
-                        )[t] || t[0].toUpperCase() + t.slice(1)}
+                  </form>
+                </div>
+              ) : (
+                state && (
+                  <>
+                    <p className="notice">
+                      Signed in as {state.admin.email} ({state.admin.role}).
+                      Checkout mode: {state.paystackMode}.{" "}
+                      <button className="secondary" onClick={signOut}>
+                        Sign out
                       </button>
-                    ))}
-                  </div>
-                  {tab === "registrations" && (
-                    <>
-                      <div className="toolbar">
-                        <h2>Registrations</h2>
-                        <span className="pill">
-                          {state.registrations.length} records
-                        </span>
-                      </div>
-                      <div className="table-wrap">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Number</th>
-                              <th>Name</th>
-                              <th>Email</th>
-                              <th>Date</th>
-                              <th>Entry</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {state.registrations.map((r) => (
-                              <tr key={r.id}>
-                                <td>{r.number}</td>
-                                <td>{r.name}</td>
-                                <td>{r.email}</td>
-                                <td>{new Date(r.date).toLocaleDateString()}</td>
-                                <td>
+                    </p>
+                    {tab === "dashboard" && (
+                      <>
+                        <h1>Dashboard</h1>
+                        <div className="grid">
+                          {[
+                            ["Registrations", state.registrations.length],
+                            ["Payments", state.payments.length],
+                            [
+                              "Paid but incomplete",
+                              state.payments.filter(
+                                (p) => p.status === "SUCCESS" && !p.completed,
+                              ).length,
+                            ],
+                            [
+                              "Verified revenue",
+                              money(
+                                state.payments
+                                  .filter((p) => p.status === "SUCCESS")
+                                  .reduce((sum, p) => sum + p.amount, 0),
+                              ),
+                            ],
+                          ].map(([label, value]) => (
+                            <div className="metric" key={label}>
+                              <small>{label}</small>
+                              <strong>{value}</strong>
+                            </div>
+                          ))}
+                        </div>
+                        <AdminDashboard />
+                      </>
+                    )}
+                    {tab === "reports" && (
+                      <MembershipAdmin
+                        superAdmin={state.admin.role === "SUPER_ADMIN"}
+                        reportsOnly
+                        onNotice={setNotice}
+                      />
+                    )}
+                    {tab === "paid" && (
+                      <MembershipAdmin
+                        key="paid"
+                        superAdmin={state.admin.role === "SUPER_ADMIN"}
+                        initialFilter="active"
+                        onNotice={setNotice}
+                      />
+                    )}
+                    {tab === "registrations" && (
+                      <>
+                        <div className="toolbar">
+                          <h2>Registrations</h2>
+                          <span className="pill">
+                            {state.registrations.length} records
+                          </span>
+                        </div>
+                        <MemberReport
+                          rows={state.registrations}
+                          title="Registrations report"
+                          onView={(r) => setSelected(r as Registration)}
+                        />
+                        {selected && (
+                          <div className="card" style={{ marginTop: 18 }}>
+                            <div className="toolbar">
+                              <h2>Registration {selected.number}</h2>
+                              {state.admin.role === "SUPER_ADMIN" &&
+                                selected.mode === "test" && (
                                   <button
                                     className="secondary"
-                                    onClick={() =>
-                                      setSelected(
-                                        selected?.id === r.id ? null : r,
+                                    onClick={async () => {
+                                      if (
+                                        !window.confirm(
+                                          "Permanently delete this test registration and its payment?",
+                                        )
                                       )
-                                    }
+                                        return;
+                                      try {
+                                        const result = await api(
+                                          "/api/admin/test-data/clear",
+                                          {
+                                            confirmation: "DELETE TEST DATA",
+                                            registrationId: selected.id,
+                                          },
+                                        );
+                                        setSelected(null);
+                                        await refresh();
+                                        setNotice(result.message);
+                                      } catch (e) {
+                                        setNotice(
+                                          "Error: " + (e as Error).message,
+                                        );
+                                      }
+                                    }}
                                   >
-                                    View entry
+                                    Delete test entry
                                   </button>
-                                  {state.admin.role === "SUPER_ADMIN" &&
-                                    r.mode === "test" && (
+                                )}
+
+                              <button
+                                className="secondary"
+                                onClick={() => setSelected(null)}
+                              >
+                                Close
+                              </button>
+                            </div>
+                            <p>
+                              Payment reference: {selected.paymentId} · Amount:{" "}
+                              {money(selected.amount)}
+                            </p>
+                            <dl className="detail">
+                              {Object.entries(
+                                JSON.parse(selected.answers) as Record<
+                                  string,
+                                  string | boolean
+                                >,
+                              ).map(([key, value]) => (
+                                <div key={key} style={{ display: "contents" }}>
+                                  <dt>
+                                    {form
+                                      .flatMap((s) => s.fields)
+                                      .find((f) => f.id === key)?.label || key}
+                                  </dt>
+                                  <dd>
+                                    {typeof value === "boolean"
+                                      ? value
+                                        ? "Yes"
+                                        : "No"
+                                      : String(value)}
+                                  </dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {tab === "incomplete" && (
+                      <>
+                        <h2>Paid · registration incomplete</h2>
+                        <div className="table-wrap">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Reference</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {state.payments
+                                .filter(
+                                  (p) => p.status === "SUCCESS" && !p.completed,
+                                )
+                                .map((p) => (
+                                  <tr key={p.id}>
+                                    <td>{p.name}</td>
+                                    <td>{p.email}</td>
+                                    <td>{p.reference}</td>
+                                    <td>{money(p.amount)}</td>
+                                    <td>
                                       <button
                                         className="secondary"
                                         onClick={async () => {
-                                          if (
-                                            !window.confirm(
-                                              "Permanently delete this test registration and its payment?",
-                                            )
-                                          )
-                                            return;
                                           try {
-                                            const result = await api(
-                                              "/api/admin/test-data/clear",
-                                              {
-                                                confirmation:
-                                                  "DELETE TEST DATA",
-                                                registrationId: r.id,
-                                              },
+                                            await api(
+                                              "/api/admin/payments/resend",
+                                              { id: p.id },
                                             );
-                                            setSelected(null);
-                                            await refresh();
-                                            setNotice(result.message);
-                                          } catch (e) {
                                             setNotice(
-                                              "Error: " + (e as Error).message,
+                                              "Registration link emailed",
                                             );
+                                          } catch (e) {
+                                            setNotice(String(e));
                                           }
                                         }}
                                       >
-                                        Delete test entry
+                                        Email registration link
                                       </button>
-                                    )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {selected && (
-                        <div className="card" style={{ marginTop: 18 }}>
-                          <div className="toolbar">
-                            <h2>Registration {selected.number}</h2>
-                            <button
-                              className="secondary"
-                              onClick={() => setSelected(null)}
-                            >
-                              Close
-                            </button>
-                          </div>
-                          <p>
-                            Payment reference: {selected.paymentId} · Amount:{" "}
-                            {money(selected.amount)}
-                          </p>
-                          <dl className="detail">
-                            {Object.entries(
-                              JSON.parse(selected.answers) as Record<
-                                string,
-                                string | boolean
-                              >,
-                            ).map(([key, value]) => (
-                              <div key={key} style={{ display: "contents" }}>
-                                <dt>
-                                  {form
-                                    .flatMap((s) => s.fields)
-                                    .find((f) => f.id === key)?.label || key}
-                                </dt>
-                                <dd>
-                                  {typeof value === "boolean"
-                                    ? value
-                                      ? "Yes"
-                                      : "No"
-                                    : String(value)}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
+                                      <button
+                                        className="secondary"
+                                        onClick={async () => {
+                                          try {
+                                            const result = await api(
+                                              "/api/admin/payments/link",
+                                              { id: p.id },
+                                            );
+                                            await navigator.clipboard.writeText(
+                                              result.registrationUrl,
+                                            );
+                                            setNotice(
+                                              "Registration link copied",
+                                            );
+                                          } catch (error) {
+                                            setNotice(String(error));
+                                          }
+                                        }}
+                                      >
+                                        Copy registration link
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
                         </div>
-                      )}
-                    </>
-                  )}
-                  {tab === "incomplete" && (
-                    <>
-                      <h2>Paid · registration incomplete</h2>
-                      <div className="table-wrap">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Email</th>
-                              <th>Reference</th>
-                              <th>Amount</th>
-                              <th>Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {state.payments
-                              .filter(
-                                (p) => p.status === "SUCCESS" && !p.completed,
-                              )
-                              .map((p) => (
+                      </>
+                    )}
+                    {(tab === "memberships" || tab === "abandoned") && (
+                      <MembershipAdmin
+                        key={tab}
+                        superAdmin={state.admin.role === "SUPER_ADMIN"}
+                        pendingOnly={tab === "abandoned"}
+                        onNotice={setNotice}
+                      />
+                    )}
+                    {tab === "manual" && (
+                      <ManualPayments
+                        superAdmin={state.admin.role === "SUPER_ADMIN"}
+                        defaultMode={state.paystackMode}
+                        onNotice={setNotice}
+                        onRefresh={refresh}
+                      />
+                    )}
+                    {tab === "payments" && (
+                      <>
+                        <h2>Payments</h2>
+                        <div className="table-wrap">
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Reference</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Source / original reference</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {state.payments.map((p) => (
                                 <tr key={p.id}>
+                                  <td>{p.reference}</td>
                                   <td>{p.name}</td>
                                   <td>{p.email}</td>
-                                  <td>{p.reference}</td>
+                                  <td>{p.phone}</td>
+                                  <td>
+                                    {p.source}
+                                    {p.externalReference && (
+                                      <>
+                                        <br />
+                                        {p.externalReference}
+                                        <br />
+                                        <small>
+                                          Approved by {p.approvedBy} ·{" "}
+                                          {p.paidAt?.slice(0, 10)}
+                                        </small>
+                                        {state.admin.role === "SUPER_ADMIN" && (
+                                          <>
+                                            <br />
+                                            <button
+                                              className="secondary"
+                                              onClick={async () => {
+                                                const confirmation =
+                                                  window.prompt(
+                                                    `Only delete this if it was a practice entry. This permanently deletes ${p.name}'s manual payment and any registration. Its stored mode is ${p.mode.toUpperCase()}. Type DELETE MANUAL TEST ENTRY to confirm.`,
+                                                  );
+                                                if (
+                                                  confirmation !==
+                                                  "DELETE MANUAL TEST ENTRY"
+                                                )
+                                                  return;
+                                                try {
+                                                  const result = await api(
+                                                    "/api/admin/payments/delete-manual-test",
+                                                    { id: p.id, confirmation },
+                                                  );
+                                                  setSelected(null);
+                                                  await refresh();
+                                                  setNotice(result.message);
+                                                } catch (error) {
+                                                  setNotice(String(error));
+                                                }
+                                              }}
+                                            >
+                                              Delete manual test entry
+                                            </button>
+                                          </>
+                                        )}
+                                      </>
+                                    )}
+                                  </td>
                                   <td>{money(p.amount)}</td>
                                   <td>
-                                    <button
-                                      className="secondary"
-                                      onClick={async () => {
-                                        try {
-                                          await api(
-                                            "/api/admin/payments/resend",
-                                            { id: p.id },
-                                          );
-                                          setNotice(
-                                            "Registration link emailed",
-                                          );
-                                        } catch (e) {
-                                          setNotice(String(e));
-                                        }
-                                      }}
-                                    >
-                                      Email registration link
-                                    </button>
-                                    <button
-                                      className="secondary"
-                                      onClick={async () => {
-                                        try {
-                                          const result = await api(
-                                            "/api/admin/payments/link",
-                                            { id: p.id },
-                                          );
-                                          await navigator.clipboard.writeText(
-                                            result.registrationUrl,
-                                          );
-                                          setNotice("Registration link copied");
-                                        } catch (error) {
-                                          setNotice(String(error));
-                                        }
-                                      }}
-                                    >
-                                      Copy registration link
-                                    </button>
+                                    <span className="pill">
+                                      {p.status} ({p.mode})
+                                    </span>
                                   </td>
                                 </tr>
                               ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
-                  {(tab === "memberships" || tab === "abandoned") && (
-                    <MembershipAdmin
-                      key={tab}
-                      superAdmin={state.admin.role === "SUPER_ADMIN"}
-                      pendingOnly={tab === "abandoned"}
-                      onNotice={setNotice}
-                    />
-                  )}
-                  {tab === "manual" && (
-                    <ManualPayments
-                      superAdmin={state.admin.role === "SUPER_ADMIN"}
-                      defaultMode={state.paystackMode}
-                      onNotice={setNotice}
-                      onRefresh={refresh}
-                    />
-                  )}
-                  {tab === "payments" && (
-                    <>
-                      <h2>Payments</h2>
-                      <div className="table-wrap">
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Reference</th>
-                              <th>Name</th>
-                              <th>Email</th>
-                              <th>Phone</th>
-                              <th>Source / original reference</th>
-                              <th>Amount</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {state.payments.map((p) => (
-                              <tr key={p.id}>
-                                <td>{p.reference}</td>
-                                <td>{p.name}</td>
-                                <td>{p.email}</td>
-                                <td>{p.phone}</td>
-                                <td>
-                                  {p.source}
-                                  {p.externalReference && (
-                                    <>
-                                      <br />
-                                      {p.externalReference}
-                                      <br />
-                                      <small>
-                                        Approved by {p.approvedBy} ·{" "}
-                                        {p.paidAt?.slice(0, 10)}
-                                      </small>
-                                      {state.admin.role === "SUPER_ADMIN" && (
-                                        <>
-                                          <br />
-                                          <button
-                                            className="secondary"
-                                            onClick={async () => {
-                                              const confirmation =
-                                                window.prompt(
-                                                  `Only delete this if it was a practice entry. This permanently deletes ${p.name}'s manual payment and any registration. Its stored mode is ${p.mode.toUpperCase()}. Type DELETE MANUAL TEST ENTRY to confirm.`,
-                                                );
-                                              if (
-                                                confirmation !==
-                                                "DELETE MANUAL TEST ENTRY"
-                                              )
-                                                return;
-                                              try {
-                                                const result = await api(
-                                                  "/api/admin/payments/delete-manual-test",
-                                                  { id: p.id, confirmation },
-                                                );
-                                                setSelected(null);
-                                                await refresh();
-                                                setNotice(result.message);
-                                              } catch (error) {
-                                                setNotice(String(error));
-                                              }
-                                            }}
-                                          >
-                                            Delete manual test entry
-                                          </button>
-                                        </>
-                                      )}
-                                    </>
-                                  )}
-                                </td>
-                                <td>{money(p.amount)}</td>
-                                <td>
-                                  <span className="pill">
-                                    {p.status} ({p.mode})
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
-                  {tab === "settings" && (
-                    <div
-                      className="grid"
-                      style={{
-                        gridTemplateColumns:
-                          "repeat(auto-fit,minmax(300px,1fr))",
-                      }}
-                    >
-                      {state.admin.role === "SUPER_ADMIN" && (
-                        <>
-                          <div className="card">
-                            <h2>Email delivery</h2>
-                            <p>
-                              {state.emailDelivery?.configured
-                                ? "SMTP settings are present. Send a test email to verify them."
-                                : "Missing environment variables: " +
-                                  state.emailDelivery?.missing.join(", ")}
-                            </p>
-                            <p>
-                              Configure SMTP_HOST, SMTP_PORT, SMTP_USER,
-                              SMTP_PASSWORD and SMTP_FROM in Hostinger, then
-                              redeploy. Use your email mailbox password.
-                            </p>
-                            <button
-                              onClick={async (e) => {
-                                const button = e.currentTarget;
-                                button.disabled = true;
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                    {tab === "settings" && (
+                      <div
+                        className="grid"
+                        style={{
+                          gridTemplateColumns:
+                            "repeat(auto-fit,minmax(300px,1fr))",
+                        }}
+                      >
+                        {state.admin.role === "SUPER_ADMIN" && (
+                          <>
+                            <div className="card">
+                              <h2>Email delivery</h2>
+                              <p>
+                                {state.emailDelivery?.configured
+                                  ? "SMTP settings are present. Send a test email to verify them."
+                                  : "Missing environment variables: " +
+                                    state.emailDelivery?.missing.join(", ")}
+                              </p>
+                              <p>
+                                Configure SMTP_HOST, SMTP_PORT, SMTP_USER,
+                                SMTP_PASSWORD and SMTP_FROM in Hostinger, then
+                                redeploy. Use your email mailbox password.
+                              </p>
+                              <button
+                                onClick={async (e) => {
+                                  const button = e.currentTarget;
+                                  button.disabled = true;
+                                  try {
+                                    const result = await api(
+                                      "/api/admin/email/test",
+                                      {},
+                                    );
+                                    setNotice(result.message);
+                                  } catch (error) {
+                                    setNotice(
+                                      "Error: " + (error as Error).message,
+                                    );
+                                  } finally {
+                                    button.disabled = false;
+                                  }
+                                }}
+                              >
+                                Send test email to my account
+                              </button>
+                            </div>
+                            <form
+                              className="card"
+                              onSubmit={async (e) => {
+                                e.preventDefault();
+                                const values = new FormData(e.currentTarget);
+                                if (
+                                  !window.confirm(
+                                    "Permanently delete ALL test payments and registrations? This cannot be undone.",
+                                  )
+                                )
+                                  return;
                                 try {
                                   const result = await api(
-                                    "/api/admin/email/test",
-                                    {},
+                                    "/api/admin/test-data/clear",
+                                    {
+                                      confirmation: values.get("confirmation"),
+                                    },
                                   );
+                                  setSelected(null);
+                                  await refresh();
                                   setNotice(result.message);
                                 } catch (error) {
                                   setNotice(
                                     "Error: " + (error as Error).message,
                                   );
-                                } finally {
-                                  button.disabled = false;
                                 }
                               }}
                             >
-                              Send test email to my account
-                            </button>
-                          </div>
-                          <form
-                            className="card"
-                            onSubmit={async (e) => {
-                              e.preventDefault();
-                              const values = new FormData(e.currentTarget);
-                              if (
-                                !window.confirm(
-                                  "Permanently delete ALL test payments and registrations? This cannot be undone.",
-                                )
-                              )
-                                return;
-                              try {
-                                const result = await api(
-                                  "/api/admin/test-data/clear",
-                                  { confirmation: values.get("confirmation") },
-                                );
-                                setSelected(null);
-                                await refresh();
-                                setNotice(result.message);
-                              } catch (error) {
-                                setNotice("Error: " + (error as Error).message);
-                              }
-                            }}
-                          >
-                            <h2>Clear test data</h2>
+                              <h2>Clear test data</h2>
+                              <p>
+                                Permanently remove test-mode registrations and
+                                payments, including unused registration links.
+                                Live records, admin accounts, settings and audit
+                                history are retained.
+                              </p>
+                              <label>
+                                Type DELETE TEST DATA to confirm
+                                <input
+                                  name="confirmation"
+                                  required
+                                  pattern="DELETE TEST DATA"
+                                  autoComplete="off"
+                                />
+                              </label>
+                              <button>Delete all test data</button>
+                            </form>
+                          </>
+                        )}
+                        <form
+                          className="card"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const v = new FormData(e.currentTarget);
+                            saveSettings("fee", { fee: Number(v.get("fee")) });
+                          }}
+                        >
+                          <h2>Membership fee</h2>
+                          <label htmlFor="fee">Amount in naira</label>
+                          <input
+                            id="fee"
+                            name="fee"
+                            type="number"
+                            min="1"
+                            defaultValue={state.fee}
+                          />
+                          <button className="primary">Save fee</button>
+                        </form>
+                        {state.admin.role === "SUPER_ADMIN" && (
+                          <div className="card">
+                            <h2>Paystack credentials</h2>
                             <p>
-                              Permanently remove test-mode registrations and
-                              payments, including unused registration links.
-                              Live records, admin accounts, settings and audit
-                              history are retained.
+                              Keys stay on the server. Test and live credentials
+                              are stored separately. Enable live checkout only
+                              after completing your payment tests.
                             </p>
-                            <label>
-                              Type DELETE TEST DATA to confirm
-                              <input
-                                name="confirmation"
-                                required
-                                pattern="DELETE TEST DATA"
-                                autoComplete="off"
-                              />
-                            </label>
-                            <button>Delete all test data</button>
-                          </form>
-                        </>
-                      )}
-                      <form
-                        className="card"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          const v = new FormData(e.currentTarget);
-                          saveSettings("fee", { fee: Number(v.get("fee")) });
-                        }}
-                      >
-                        <h2>Membership fee</h2>
-                        <label htmlFor="fee">Amount in naira</label>
-                        <input
-                          id="fee"
-                          name="fee"
-                          type="number"
-                          min="1"
-                          defaultValue={state.fee}
-                        />
-                        <button className="primary">Save fee</button>
-                      </form>
-                      {state.admin.role === "SUPER_ADMIN" && (
+                            {(["test", "live"] as const).map((m) => (
+                              <form
+                                key={m}
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const v = new FormData(e.currentTarget);
+                                  saveSettings("paystack", {
+                                    mode: m,
+                                    publicKey: v.get("publicKey"),
+                                    secretKey: v.get("secretKey"),
+                                    activate: v.get("activate") === "on",
+                                  });
+                                  (
+                                    e.currentTarget.elements.namedItem(
+                                      "secretKey",
+                                    ) as HTMLInputElement
+                                  ).value = "";
+                                }}
+                              >
+                                <h3>
+                                  {m === "test" ? "Test keys" : "Live keys"}
+                                </h3>
+                                <label htmlFor={m + "Public"}>Public key</label>
+                                <input
+                                  id={m + "Public"}
+                                  name="publicKey"
+                                  autoComplete="off"
+                                  defaultValue={
+                                    m === "test"
+                                      ? state.paystackTestPublicKey
+                                      : state.paystackLivePublicKey
+                                  }
+                                  placeholder={"pk_" + m + "_…"}
+                                />
+                                <label htmlFor={m + "Secret"}>
+                                  Secret key{" "}
+                                  {(
+                                    m === "test"
+                                      ? state.testSecretSaved
+                                      : state.liveSecretSaved
+                                  )
+                                    ? "(saved; enter to replace)"
+                                    : ""}
+                                </label>
+                                <input
+                                  id={m + "Secret"}
+                                  name="secretKey"
+                                  type="password"
+                                  autoComplete="new-password"
+                                  placeholder={"sk_" + m + "_…"}
+                                />
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    name="activate"
+                                    disabled={
+                                      m === "live" && !state.liveAllowed
+                                    }
+                                  />{" "}
+                                  Activate {m} checkout
+                                </label>
+                                <button className="primary">
+                                  Save {m} keys
+                                </button>
+                              </form>
+                            ))}
+                            <p className="notice">
+                              Current checkout: {state.paystackMode}. Live
+                              activation requires HTTPS, email configuration,
+                              completed payment tests and
+                              ALLOW_LIVE_PAYMENTS=true in Hostinger.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {tab === "users" && state.admin.role === "SUPER_ADMIN" && (
+                      <>
                         <div className="card">
-                          <h2>Paystack credentials</h2>
-                          <p>
-                            Keys stay on the server. Test and live credentials
-                            are stored separately. Enable live checkout only
-                            after completing your payment tests.
-                          </p>
-                          {(["test", "live"] as const).map((m) => (
-                            <form
-                              key={m}
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                const v = new FormData(e.currentTarget);
-                                saveSettings("paystack", {
-                                  mode: m,
-                                  publicKey: v.get("publicKey"),
-                                  secretKey: v.get("secretKey"),
-                                  activate: v.get("activate") === "on",
-                                });
-                                (
-                                  e.currentTarget.elements.namedItem(
-                                    "secretKey",
-                                  ) as HTMLInputElement
-                                ).value = "";
-                              }}
-                            >
-                              <h3>
-                                {m === "test" ? "Test keys" : "Live keys"}
-                              </h3>
-                              <label htmlFor={m + "Public"}>Public key</label>
+                          <h2>Create admin</h2>
+                          <form
+                            onSubmit={createAdmin}
+                            className="button-row"
+                            style={{ alignItems: "end" }}
+                          >
+                            <div>
+                              <label htmlFor="new-email">Email</label>
                               <input
-                                id={m + "Public"}
-                                name="publicKey"
-                                autoComplete="off"
-                                defaultValue={
-                                  m === "test"
-                                    ? state.paystackTestPublicKey
-                                    : state.paystackLivePublicKey
-                                }
-                                placeholder={"pk_" + m + "_…"}
+                                id="new-email"
+                                name="email"
+                                type="email"
+                                required
                               />
-                              <label htmlFor={m + "Secret"}>
-                                Secret key{" "}
-                                {(
-                                  m === "test"
-                                    ? state.testSecretSaved
-                                    : state.liveSecretSaved
-                                )
-                                  ? "(saved; enter to replace)"
-                                  : ""}
+                            </div>
+                            <div>
+                              <label htmlFor="new-password">
+                                Initial password
                               </label>
                               <input
-                                id={m + "Secret"}
-                                name="secretKey"
+                                id="new-password"
+                                name="password"
                                 type="password"
                                 autoComplete="new-password"
-                                placeholder={"sk_" + m + "_…"}
+                                required
+                                minLength={12}
+                                maxLength={128}
                               />
-                              <label>
-                                <input
-                                  type="checkbox"
-                                  name="activate"
-                                  disabled={m === "live" && !state.liveAllowed}
-                                />{" "}
-                                Activate {m} checkout
-                              </label>
-                              <button className="primary">Save {m} keys</button>
-                            </form>
-                          ))}
+                            </div>
+                            <div>
+                              <label htmlFor="new-role">Role</label>
+                              <select id="new-role" name="role">
+                                <option value="ADMIN">Admin</option>
+                                <option value="SUPER_ADMIN">Super Admin</option>
+                              </select>
+                            </div>
+                            <button className="primary">Create user</button>
+                          </form>
                           <p className="notice">
-                            Current checkout: {state.paystackMode}. Live
-                            activation requires HTTPS, email configuration,
-                            completed payment tests and ALLOW_LIVE_PAYMENTS=true
-                            in Hostinger.
+                            Only Super Admins can create users. New users sign
+                            in with the email and password you assign.
                           </p>
                         </div>
-                      )}
-                    </div>
-                  )}
-                  {tab === "users" && state.admin.role === "SUPER_ADMIN" && (
-                    <>
-                      <div className="card">
-                        <h2>Create admin</h2>
                         <form
-                          onSubmit={createAdmin}
-                          className="button-row"
-                          style={{ alignItems: "end" }}
+                          className="card"
+                          onSubmit={resetPassword}
+                          style={{ marginTop: 20 }}
                         >
-                          <div>
-                            <label htmlFor="new-email">Email</label>
-                            <input
-                              id="new-email"
-                              name="email"
-                              type="email"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="new-password">
-                              Initial password
-                            </label>
-                            <input
-                              id="new-password"
-                              name="password"
-                              type="password"
-                              autoComplete="new-password"
-                              required
-                              minLength={12}
-                              maxLength={128}
-                            />
-                          </div>
-                          <div>
-                            <label htmlFor="new-role">Role</label>
-                            <select id="new-role" name="role">
-                              <option value="ADMIN">Admin</option>
-                              <option value="SUPER_ADMIN">Super Admin</option>
-                            </select>
-                          </div>
-                          <button className="primary">Create user</button>
+                          <h2>Reset admin password</h2>
+                          <label>Admin</label>
+                          <select name="id">
+                            {state.admins.map((a) => (
+                              <option key={a.id} value={a.id}>
+                                {a.email}
+                              </option>
+                            ))}
+                          </select>
+                          <label>New password</label>
+                          <input
+                            name="password"
+                            type="password"
+                            autoComplete="new-password"
+                            minLength={12}
+                            maxLength={128}
+                            required
+                          />
+                          <button className="primary">Reset password</button>
                         </form>
-                        <p className="notice">
-                          Only Super Admins can create users. New users sign in
-                          with the email and password you assign.
-                        </p>
-                      </div>
-                      <form
-                        className="card"
-                        onSubmit={resetPassword}
-                        style={{ marginTop: 20 }}
-                      >
-                        <h2>Reset admin password</h2>
-                        <label>Admin</label>
-                        <select name="id">
-                          {state.admins.map((a) => (
-                            <option key={a.id} value={a.id}>
-                              {a.email}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="table-wrap" style={{ marginTop: 20 }}>
+                          <table>
+                            <thead>
+                              <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Controls</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {state.admins.map((a) => (
+                                <tr key={a.id}>
+                                  <td>{a.email}</td>
+                                  <td>{a.role}</td>
+                                  <td>{a.active ? "Active" : "Inactive"}</td>
+                                  <td className="button-row">
+                                    <button
+                                      className="secondary"
+                                      onClick={() =>
+                                        changeAdmin(
+                                          a,
+                                          a.role === "ADMIN"
+                                            ? "SUPER_ADMIN"
+                                            : "ADMIN",
+                                          !!a.active,
+                                        )
+                                      }
+                                    >
+                                      Change role
+                                    </button>
+                                    <button
+                                      className="secondary"
+                                      onClick={() =>
+                                        changeAdmin(a, a.role, !a.active)
+                                      }
+                                    >
+                                      {a.active ? "Deactivate" : "Activate"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
+                    {tab === "account" && (
+                      <form className="card" onSubmit={changePassword}>
+                        <h2>Change your password</h2>
+                        <label>Current password</label>
+                        <input
+                          name="currentPassword"
+                          type="password"
+                          autoComplete="current-password"
+                          required
+                        />
                         <label>New password</label>
                         <input
-                          name="password"
+                          name="newPassword"
                           type="password"
                           autoComplete="new-password"
                           minLength={12}
                           maxLength={128}
                           required
                         />
-                        <button className="primary">Reset password</button>
+                        <button className="primary">Change password</button>
                       </form>
-                      <div className="table-wrap" style={{ marginTop: 20 }}>
-                        <table>
-                          <thead>
-                            <tr>
-                              <th>Email</th>
-                              <th>Role</th>
-                              <th>Status</th>
-                              <th>Controls</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {state.admins.map((a) => (
-                              <tr key={a.id}>
-                                <td>{a.email}</td>
-                                <td>{a.role}</td>
-                                <td>{a.active ? "Active" : "Inactive"}</td>
-                                <td className="button-row">
-                                  <button
-                                    className="secondary"
-                                    onClick={() =>
-                                      changeAdmin(
-                                        a,
-                                        a.role === "ADMIN"
-                                          ? "SUPER_ADMIN"
-                                          : "ADMIN",
-                                        !!a.active,
-                                      )
-                                    }
-                                  >
-                                    Change role
-                                  </button>
-                                  <button
-                                    className="secondary"
-                                    onClick={() =>
-                                      changeAdmin(a, a.role, !a.active)
-                                    }
-                                  >
-                                    {a.active ? "Deactivate" : "Activate"}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
-                  {tab === "account" && (
-                    <form className="card" onSubmit={changePassword}>
-                      <h2>Change your password</h2>
-                      <label>Current password</label>
-                      <input
-                        name="currentPassword"
-                        type="password"
-                        autoComplete="current-password"
-                        required
-                      />
-                      <label>New password</label>
-                      <input
-                        name="newPassword"
-                        type="password"
-                        autoComplete="new-password"
-                        minLength={12}
-                        maxLength={128}
-                        required
-                      />
-                      <button className="primary">Change password</button>
-                    </form>
-                  )}
-                  {tab === "builder" && (
-                    <div className="card">
-                      <h2>Form builder</h2>
-                      <p>
-                        Edit labels, required fields, or add fields. Publish to
-                        use changes for new registrations.
-                      </p>
-                      {form.map((s, si) => (
-                        <section className="section" key={si}>
-                          <label>Section name</label>
-                          <input
-                            value={s.title}
-                            onChange={(e) =>
-                              setForm(
-                                form.map((section, i) =>
-                                  i === si
-                                    ? { ...section, title: e.target.value }
-                                    : section,
-                                ),
-                              )
-                            }
-                          />
-                          {s.fields.map((f, fi) => (
-                            <div
-                              className="field-editor"
-                              key={f.id}
-                              draggable
-                              onDragStart={(e) =>
-                                e.dataTransfer.setData(
-                                  "text/plain",
-                                  si + ":" + fi,
+                    )}
+                    {tab === "builder" && (
+                      <div className="card">
+                        <h2>Form builder</h2>
+                        <p>
+                          Edit labels, required fields, or add fields. Publish
+                          to use changes for new registrations.
+                        </p>
+                        {form.map((s, si) => (
+                          <section className="section" key={si}>
+                            <label>Section name</label>
+                            <input
+                              value={s.title}
+                              onChange={(e) =>
+                                setForm(
+                                  form.map((section, i) =>
+                                    i === si
+                                      ? { ...section, title: e.target.value }
+                                      : section,
+                                  ),
                                 )
                               }
-                              onDragOver={(e) => e.preventDefault()}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const [fromS, fromF] = e.dataTransfer
-                                  .getData("text/plain")
-                                  .split(":")
-                                  .map(Number);
-                                if (!Number.isInteger(fromS)) return;
-                                const next = structuredClone(form),
-                                  [moving] = next[fromS].fields.splice(
-                                    fromF,
-                                    1,
-                                  );
-                                next[si].fields.splice(fi, 0, moving);
-                                setForm(next);
-                              }}
-                            >
-                              <span className="handle">☰</span>
-                              <input
-                                aria-label="Field label"
-                                value={f.label}
-                                onChange={(e) =>
-                                  setField(si, fi, { label: e.target.value })
+                            />
+                            {s.fields.map((f, fi) => (
+                              <div
+                                className="field-editor"
+                                key={f.id}
+                                draggable
+                                onDragStart={(e) =>
+                                  e.dataTransfer.setData(
+                                    "text/plain",
+                                    si + ":" + fi,
+                                  )
                                 }
-                              />
-                              <label>
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  const [fromS, fromF] = e.dataTransfer
+                                    .getData("text/plain")
+                                    .split(":")
+                                    .map(Number);
+                                  if (!Number.isInteger(fromS)) return;
+                                  const next = structuredClone(form),
+                                    [moving] = next[fromS].fields.splice(
+                                      fromF,
+                                      1,
+                                    );
+                                  next[si].fields.splice(fi, 0, moving);
+                                  setForm(next);
+                                }}
+                              >
+                                <span className="handle">☰</span>
                                 <input
-                                  type="checkbox"
-                                  checked={f.required}
+                                  aria-label="Field label"
+                                  value={f.label}
                                   onChange={(e) =>
-                                    setField(si, fi, {
-                                      required: e.target.checked,
-                                    })
+                                    setField(si, fi, { label: e.target.value })
                                   }
-                                />{" "}
-                                Required
-                              </label>
+                                />
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    checked={f.required}
+                                    onChange={(e) =>
+                                      setField(si, fi, {
+                                        required: e.target.checked,
+                                      })
+                                    }
+                                  />{" "}
+                                  Required
+                                </label>
+                                <button
+                                  className="secondary"
+                                  onClick={() => removeField(si, fi)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                            <div className="button-row">
+                              <select id={"type" + si} defaultValue="text">
+                                <option value="text">Short text</option>
+                                <option value="textarea">Long text</option>
+                                <option value="email">Email</option>
+                                <option value="tel">Phone</option>
+                                <option value="date">Date</option>
+                                <option value="number">Number</option>
+                                <option value="checkbox">Checkbox</option>
+                              </select>
                               <button
                                 className="secondary"
-                                onClick={() => removeField(si, fi)}
+                                onClick={() =>
+                                  addField(
+                                    si,
+                                    (
+                                      document.getElementById(
+                                        "type" + si,
+                                      ) as unknown as HTMLSelectElement
+                                    ).value,
+                                  )
+                                }
                               >
-                                Remove
+                                Add field
                               </button>
                             </div>
-                          ))}
-                          <div className="button-row">
-                            <select id={"type" + si} defaultValue="text">
-                              <option value="text">Short text</option>
-                              <option value="textarea">Long text</option>
-                              <option value="email">Email</option>
-                              <option value="tel">Phone</option>
-                              <option value="date">Date</option>
-                              <option value="number">Number</option>
-                              <option value="checkbox">Checkbox</option>
-                            </select>
-                            <button
-                              className="secondary"
-                              onClick={() =>
-                                addField(
-                                  si,
-                                  (
-                                    document.getElementById(
-                                      "type" + si,
-                                    ) as unknown as HTMLSelectElement
-                                  ).value,
-                                )
-                              }
-                            >
-                              Add field
-                            </button>
-                          </div>
-                        </section>
-                      ))}
-                      <div className="button-row">
-                        <button
-                          className="secondary"
-                          onClick={() =>
-                            setForm([
-                              ...form,
-                              { title: "New section", fields: [] },
-                            ])
-                          }
-                        >
-                          Add section
-                        </button>
-                        <button
-                          className="primary"
-                          onClick={() =>
-                            saveSettings("form", { form: { sections: form } })
-                          }
-                        >
-                          Publish form
-                        </button>
+                          </section>
+                        ))}
+                        <div className="button-row">
+                          <button
+                            className="secondary"
+                            onClick={() =>
+                              setForm([
+                                ...form,
+                                { title: "New section", fields: [] },
+                              ])
+                            }
+                          >
+                            Add section
+                          </button>
+                          <button
+                            className="primary"
+                            onClick={() =>
+                              saveSettings("form", { form: { sections: form } })
+                            }
+                          >
+                            Publish form
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </>
-              )
-            )}
-          </>
-        )}
-      </main>
+                    )}
+                  </>
+                )
+              )}
+            </>
+          )}
+        </main>
+      </div>
       <footer>
         FEDMOGA · Knowledge, Discipline and Unity · Membership portal
       </footer>

@@ -23,7 +23,7 @@ export async function GET() {
         .all(),
       db
         .prepare(
-          "SELECT r.id,r.number,r.payment_id as paymentId,r.answers,r.created_at as date,p.full_name as name,p.email,p.phone,p.amount,p.mode FROM registrations r JOIN payments p ON p.id=r.payment_id ORDER BY r.created_at DESC LIMIT 500",
+          "SELECT r.id,r.number,r.payment_id as paymentId,r.answers,r.created_at as date,p.full_name as name,p.email,p.phone,p.amount,p.mode FROM registrations r JOIN payments p ON p.id=r.payment_id ORDER BY r.created_at DESC",
         )
         .all(),
       admin.role === "SUPER_ADMIN"

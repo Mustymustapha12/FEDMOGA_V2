@@ -244,6 +244,14 @@ test(
         .bind(payment.id)
         .first<{ n: number }>();
       assert.equal(count?.n, 1);
+      const stored = await db
+        .prepare("SELECT answers FROM registrations WHERE payment_id=?")
+        .bind(payment.id)
+        .first<{ answers: string }>();
+      const identity = JSON.parse(stored!.answers);
+      assert.equal(identity.fullName, "Test Member");
+      assert.equal(identity.email, email);
+      assert.equal(identity.phone, "08012345678");
       assert.equal(
         (await continuePayment(request("/api/paystack/continue", { token })))
           .status,
