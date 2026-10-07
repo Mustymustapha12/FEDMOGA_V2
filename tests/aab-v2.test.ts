@@ -113,10 +113,20 @@ test(
       (await call("/api/member/account/complete", { token, password })).status,
       403,
     );
-    const login = await call("/api/member/login", { email, password });
+    const login = await call("/api/auth/login", { email, password });
     assert.equal(login.status, 200);
+    assert.deepEqual(await login.json(), {
+      ok: true,
+      role: "MEMBER",
+      redirect: "/member",
+    });
     const memberCookie = login.headers.get("set-cookie")!.split(";")[0];
     assert.match(login.headers.get("set-cookie")!, /HttpOnly/);
+    const roleState = await (
+      await call("/api/auth/session", undefined, memberCookie)
+    ).json();
+    assert.equal(roleState.role, "MEMBER");
+    assert.equal(roleState.redirect, "/member");
     const memberState = await (
       await call("/api/member/state", undefined, memberCookie)
     ).json();
@@ -418,5 +428,41 @@ test(
       ).status,
       200,
     );
+    // Changing roles replaces the previous session rather than keeping admin access.
+    const switchToMember = await call(
+      "/api/auth/login",
+      { email, password: "New-member-password-123", role: "SUPER_ADMIN" },
+      root,
+    );
+    assert.equal(switchToMember.status, 200);
+    assert.equal((await switchToMember.json()).role, "MEMBER");
+    const switchedCookie = switchToMember.headers
+      .getSetCookie()
+      .find((c) => c.startsWith("fedmoga_member_session="))!
+      .split(";")[0];
+    assert.equal((await call("/api/admin/state", undefined, root)).status, 401);
+    assert.equal(
+      (await call("/api/member/state", undefined, switchedCookie)).status,
+      200,
+    );
+    const switchToAdmin = await call(
+      "/api/auth/login",
+      {
+        email: process.env.SUPER_ADMIN_EMAIL,
+        password: process.env.SUPER_ADMIN_PASSWORD,
+      },
+      switchedCookie,
+    );
+    assert.equal(switchToAdmin.status, 200);
+    assert.equal((await switchToAdmin.json()).role, "SUPER_ADMIN");
+    assert.equal(
+      (await call("/api/member/state", undefined, switchedCookie)).status,
+      401,
+    );
+    for (const path of ["/", "/login"]) {
+      const html = await (await call(path)).text();
+      assert.doesNotMatch(html, /<aside\b/);
+      assert.match(html, /public-navigation/);
+    }
   },
 );

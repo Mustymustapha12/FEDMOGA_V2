@@ -31,6 +31,9 @@ test(
     const login = async (email: string, password: string) => {
       const res = await call("/api/auth/login", { email, password });
       assert.equal(res.status, 200);
+      const signedIn = await res.json();
+      assert.ok(["ADMIN", "SUPER_ADMIN"].includes(signedIn.role));
+      assert.equal(signedIn.redirect, "/admin");
       const header = res.headers.get("set-cookie") || "";
       assert.match(header, /HttpOnly/i);
       assert.match(header, /Secure/i);

@@ -5,55 +5,26 @@ import {
   filteredRows,
   reportAnswers,
   downloadReport,
+  reportSequence,
+  memberExportRows,
   type ReportRow,
 } from "./report-data";
 export default function MemberReport({
   rows,
   title = "Member report",
   onView,
+  renderActions,
 }: {
   rows: ReportRow[];
   title?: string;
   onView?: (r: ReportRow) => void;
+  renderActions?: (r: ReportRow) => React.ReactNode;
 }) {
   const [filters, setFilters] = useState({ ...emptyFilters });
   const visible = filteredRows(rows, filters),
     membership = rows.some((r) => r.status);
   const seq = (i: number) =>
-    filters.direction === "desc" ? visible.length - i : i + 1;
-  const headers = [
-    "No.",
-    "Registration number",
-    "Name",
-    "Email",
-    "Phone",
-    "Membership status",
-    "Payment plan",
-    "Paid through",
-    "Registration date",
-    "Mode",
-    "Graduation year",
-    "Country",
-    "Profession",
-  ];
-  const values = (r: ReportRow, i: number) => {
-    const a = reportAnswers(r);
-    return [
-      seq(i),
-      r.number,
-      r.name,
-      r.email,
-      r.phone,
-      r.status || "Registered",
-      r.preferredPlan || "",
-      r.paidUntil || "",
-      r.date?.slice(0, 10) || "",
-      r.mode,
-      a.year,
-      a.country,
-      a.profession,
-    ];
-  };
+    reportSequence(i, visible.length, filters.direction);
   const field = (key: keyof typeof filters, label: string, type = "text") => (
     <label key={key}>
       {label}
@@ -71,10 +42,10 @@ export default function MemberReport({
         <button
           className="secondary"
           onClick={() =>
-            downloadReport("fedmoga-member-report.csv", [
-              headers,
-              ...visible.map(values),
-            ])
+            downloadReport(
+              "fedmoga-members.csv",
+              memberExportRows(visible, filters.direction),
+            )
           }
         >
           Export filtered CSV
@@ -205,6 +176,7 @@ export default function MemberReport({
                 <td>
                   {String(reportAnswers(r).year || "—")} ·{" "}
                   {String(reportAnswers(r).country || "—")}
+                  {renderActions?.(r)}
                   {onView && (
                     <button className="secondary" onClick={() => onView(r)}>
                       View entry

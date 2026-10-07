@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import ManualPayments from "./manual-payments";
 import MembershipAdmin from "./membership-admin";
 import AdminDashboard from "./dashboard";
+import PublicHeader from "./public-header";
+import AdminNavigation from "./admin-navigation";
 import MemberReport from "./member-report";
 type Field = { id: string; label: string; type: string; required: boolean };
 type Section = { title: string; fields: Field[] };
@@ -72,8 +74,8 @@ async function api(path: string, body?: unknown, method = "POST") {
   if (!res.ok) throw Error(result.error || "Request failed");
   return result;
 }
-export default function Portal() {
-  const [view, setView] = useState("home"),
+export default function Portal({ adminPage = false }: { adminPage?: boolean }) {
+  const [view, setView] = useState(adminPage ? "admin" : "home"),
     [tab, setTab] = useState("dashboard"),
     [fee, setFee] = useState(5000),
     [form, setForm] = useState<Section[]>(defaults),
@@ -113,6 +115,9 @@ export default function Portal() {
         .getElementById("feedback-alert")
         ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [notice]);
+  useEffect(() => {
+    if (adminPage) openAdmin();
+  }, [adminPage]);
   useEffect(() => {
     api("/api/config")
       .then((v) => {
@@ -192,6 +197,7 @@ export default function Portal() {
       setLoginState("ready");
     } catch (e) {
       setLoginState(String(e));
+      location.replace("/login");
     }
   }
   async function begin(e: React.FormEvent) {
@@ -277,30 +283,12 @@ export default function Portal() {
       setNotice(String(e));
     }
   }
-  async function signIn(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const element = e.currentTarget,
-      f = new FormData(element);
-    setBusy(true);
-    try {
-      await api("/api/auth/login", {
-        email: f.get("email"),
-        password: f.get("password"),
-      });
-      element.reset();
-      await openAdmin();
-    } catch (e) {
-      setNotice(String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
   async function signOut() {
     try {
       await api("/api/auth/logout", {});
       setState(null);
       setLoginState("");
-      setView("home");
+      location.assign("/login");
     } catch (e) {
       setNotice(String(e));
     }
@@ -316,6 +304,7 @@ export default function Portal() {
       setState(null);
       setLoginState("");
       setNotice("Password changed. Please sign in again.");
+      location.assign("/login");
     } catch (e) {
       setNotice(String(e));
     }
@@ -430,78 +419,20 @@ export default function Portal() {
           ? "PAYSTACK TEST MODE · Test transactions only"
           : "FEDMOGA MEMBERSHIP REGISTRATION"}
       </div>
-      <header className="header">
-        <div className="wrap top">
-          <button
-            className="brand"
-            onClick={() => setView("home")}
-            style={{ border: 0, background: "none", textAlign: "left" }}
-          >
-            <img src="/logo.jpg" alt="FGGC Minjibir FEDMOGA logo" />
-            <span>
-              <strong>FEDMOGA</strong>
-              <small>Knowledge, Discipline and Unity</small>
-            </span>
-          </button>
-        </div>
-      </header>
-      <div className="app-shell">
-        <aside className="sidebar" aria-label="Main menu">
-          <h2>
-            {view === "admin" && state ? "Administration" : "FEDMOGA portal"}
-          </h2>
-          {view === "admin" && state ? (
-            Object.entries({
-              dashboard: "Dashboard",
-              registrations: "Registrations",
-              paid: "Paid Membership",
-              memberships: "Members & Dues",
-              reports: "Reports & Export",
-              incomplete: "Paid — Finish Registration",
-              abandoned: "Pending Payments",
-              payments: "Registration Payments",
-              manual: "Approve Previous Payment",
-              builder: "Registration Form",
-              settings: "Settings",
-              account: "My Account",
-              ...(state.admin.role === "SUPER_ADMIN"
-                ? { users: "Admin Users" }
-                : {}),
-            }).map(([key, label]) => (
-              <button
-                key={key}
-                className={tab === key ? "active" : ""}
-                aria-current={tab === key ? "page" : undefined}
-                onClick={() => {
-                  setTab(key);
-                  setSelected(null);
-                  setNotice("");
-                }}
-              >
-                {label}
-              </button>
-            ))
-          ) : (
-            <>
-              <button
-                className={view === "home" ? "active" : ""}
-                onClick={() => setView("home")}
-              >
-                Dashboard / Registration
-              </button>
-              <a href="/member">Member Sign In</a>
-              <button
-                className={view === "admin" ? "active" : ""}
-                onClick={openAdmin}
-              >
-                Admin Sign In
-              </button>
-            </>
-          )}
-          {view === "admin" && state && (
-            <button onClick={signOut}>Sign Out</button>
-          )}
-        </aside>
+      <PublicHeader signedIn={adminPage && !!state} />
+      <div className={adminPage && state ? "app-shell" : "public-shell"}>
+        {adminPage && state && (
+          <AdminNavigation
+            tab={tab}
+            superAdmin={state.admin.role === "SUPER_ADMIN"}
+            onSelect={(key) => {
+              setTab(key);
+              setSelected(null);
+              setNotice("");
+            }}
+            onSignOut={signOut}
+          />
+        )}
         <main className="wrap">
           <div
             className="feedback-region"
@@ -731,33 +662,9 @@ export default function Portal() {
               <span className="eyebrow">FEDMOGA · Administration</span>
               <h1>Membership overview</h1>
               {loginState !== "ready" ? (
-                <div className="card" style={{ maxWidth: 630 }}>
-                  <h2>Admin sign in</h2>
-                  <p>Sign in with your FEDMOGA admin email and password.</p>
-                  <form onSubmit={signIn}>
-                    <label htmlFor="login-email">Email</label>
-                    <input
-                      id="login-email"
-                      name="email"
-                      type="email"
-                      autoComplete="username"
-                      required
-                    />
-                    <label htmlFor="login-password">Password</label>
-                    <input
-                      id="login-password"
-                      name="password"
-                      type="password"
-                      autoComplete="current-password"
-                      required
-                    />
-                    <button
-                      className="primary"
-                      disabled={busy || loginState === "loading"}
-                    >
-                      Sign in
-                    </button>
-                  </form>
+                <div className="card">
+                  <p>Loading your dashboard…</p>
+                  <a href="/login">Sign In</a>
                 </div>
               ) : (
                 state && (
@@ -807,12 +714,18 @@ export default function Portal() {
                         onNotice={setNotice}
                       />
                     )}
-                    {tab === "paid" && (
+                    {tab === "membershipSettings" && (
                       <MembershipAdmin
-                        key="paid"
+                        key="membership-settings"
                         superAdmin={state.admin.role === "SUPER_ADMIN"}
-                        initialFilter="active"
+                        settingsOnly
                         onNotice={setNotice}
+                      />
+                    )}
+                    {tab === "registrationReports" && (
+                      <MemberReport
+                        rows={state.registrations}
+                        title="Registration reports & export"
                       />
                     )}
                     {tab === "registrations" && (

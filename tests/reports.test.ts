@@ -4,6 +4,7 @@ import {
   filteredRows,
   emptyFilters,
   csvText,
+  memberExportRows,
   type ReportRow,
 } from "../app/report-data";
 test("member reports combine filters, include end dates and reverse natural number order", () => {
@@ -65,4 +66,48 @@ test("member reports combine filters, include end dates and reverse natural numb
   assert.equal(filteredRows(rows, { ...emptyFilters, year: "2009" }).length, 0);
   assert.match(csvText([[" =SUM(1,2)", 'A "quoted" name']]), /' =SUM/);
   assert.match(csvText([['A "quoted" name']]), /""quoted""/);
+});
+
+test("actual member CSV exports have separate ascending and descending serial numbers", () => {
+  const rows: ReportRow[] = [
+    {
+      id: "a",
+      name: "Amina",
+      email: "a@example.com",
+      phone: "0801",
+      number: "FED-2",
+    },
+    {
+      id: "b",
+      name: "Zara",
+      email: "z@example.com",
+      phone: "0802",
+      number: "FED-10",
+    },
+  ];
+  const asc = memberExportRows(
+    filteredRows(rows, { ...emptyFilters, sort: "number" }),
+    "asc",
+  );
+  const desc = memberExportRows(
+    filteredRows(rows, { ...emptyFilters, sort: "number", direction: "desc" }),
+    "desc",
+  );
+  assert.equal(asc[0][0], "No.");
+  assert.deepEqual(
+    asc.slice(1).map((r) => r[0]),
+    [1, 2],
+  );
+  assert.deepEqual(
+    desc.slice(1).map((r) => r[0]),
+    [2, 1],
+  );
+  assert.equal(desc[1][1], "FED-10");
+  assert.match(csvText(desc), /"2","FED-10","Zara"/);
+  const one = memberExportRows(
+    filteredRows(rows, { ...emptyFilters, search: "Amina" }),
+    "desc",
+  );
+  assert.equal(one.length, 2);
+  assert.equal(one[1][0], 1);
 });

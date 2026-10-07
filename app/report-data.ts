@@ -108,6 +108,56 @@ export function downloadReport(filename: string, rows: unknown[][]) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function reportSequence(
+  index: number,
+  total: number,
+  direction: string,
+) {
+  return direction === "desc" ? total - index : index + 1;
+}
+export function memberExportRows(
+  visible: ReportRow[],
+  direction: string,
+): unknown[][] {
+  return [
+    [
+      "No.",
+      "Registration number",
+      "Name",
+      "Email",
+      "Phone",
+      "Membership status",
+      "Payment plan",
+      "Paid through",
+      "Registration date",
+      "Mode",
+      "Graduation year",
+      "Country",
+      "Profession",
+    ],
+    ...visible.map((r, i) => {
+      const a = reportAnswers(r);
+      return [
+        reportSequence(i, visible.length, direction),
+        r.number,
+        r.name,
+        r.email,
+        r.phone,
+        r.status || "Registered",
+        r.preferredPlan || "",
+        r.paidUntil || "",
+        r.date?.slice(0, 10) || "",
+        r.mode,
+        a.year,
+        a.country,
+        a.profession,
+      ];
+    }),
+  ];
 }

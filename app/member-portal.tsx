@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import PublicHeader from "./public-header";
 import { renewalPeriod, Plan } from "../server/calendar";
 const money = (value: number) => "₦" + Number(value).toLocaleString("en-NG");
 async function api(path: string, body?: unknown) {
@@ -61,7 +62,9 @@ export default function MemberPortal() {
       );
       history.replaceState(null, "", location.pathname);
     }
-    refresh();
+    refresh().then((state) => {
+      if (!state && !t) location.replace("/login");
+    });
   }, []);
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -69,12 +72,7 @@ export default function MemberPortal() {
     setBusy(true);
     try {
       if (screen === "login") {
-        await api("/api/member/login", {
-          email: values.get("email"),
-          password: values.get("password"),
-        });
-        await refresh();
-        notice("Welcome back to your FEDMOGA account");
+        location.assign("/login");
       } else if (screen === "activate") {
         if (values.get("password") !== values.get("confirm"))
           throw new Error("Passwords do not match");
@@ -83,6 +81,7 @@ export default function MemberPortal() {
           password: values.get("password"),
         });
         setToken("");
+        location.assign("/login");
         setScreen("login");
         notice(r.message);
       } else {
@@ -109,58 +108,53 @@ export default function MemberPortal() {
   }
   return (
     <>
-      <header className="header">
-        <div className="wrap top">
-          <a className="brand" href="/">
-            <img src="/logo.jpg" alt="FEDMOGA" />
-            <span>
-              <strong>FEDMOGA</strong>
-              <small>Member account</small>
-            </span>
-          </a>
-        </div>
-      </header>
-      <div className="app-shell">
-        <aside className="sidebar" aria-label="Member menu">
-          <h2>Member portal</h2>
-          {data ? (
-            <>
-              {Object.entries({
-                dashboard: "Dashboard",
-                dues: "Pay Dues / Renew",
-                payments: "My Payments",
-                profile: "My Profile",
-              }).map(([key, label]) => (
+      <PublicHeader signedIn={!!data} />
+      <div className={data ? "app-shell" : "public-shell"}>
+        {data && (
+          <aside className="sidebar" aria-label="Member menu">
+            <h2>Member portal</h2>
+            {data ? (
+              <>
+                {Object.entries({
+                  dashboard: "Dashboard",
+                  dues: "Pay Dues / Renew",
+                  payments: "My Payments",
+                  profile: "My Profile",
+                }).map(([key, label]) => (
+                  <button
+                    key={key}
+                    className={tab === key ? "active" : ""}
+                    aria-current={tab === key ? "page" : undefined}
+                    onClick={() => setTab(key)}
+                  >
+                    {label}
+                  </button>
+                ))}
                 <button
-                  key={key}
-                  className={tab === key ? "active" : ""}
-                  aria-current={tab === key ? "page" : undefined}
-                  onClick={() => setTab(key)}
+                  onClick={async () => {
+                    await api("/api/member/logout", {});
+                    setData(null);
+                    location.assign("/login");
+                    setScreen("login");
+                    setTab("dashboard");
+                  }}
                 >
-                  {label}
+                  Sign Out
                 </button>
-              ))}
-              <button
-                onClick={async () => {
-                  await api("/api/member/logout", {});
-                  setData(null);
-                  setScreen("login");
-                  setTab("dashboard");
-                }}
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setScreen("login")}>Member Sign In</button>
-              <button onClick={() => setScreen("reset")}>
-                Activate / Reset Account
-              </button>
-            </>
-          )}
-          <a href="/">Registration Portal</a>
-        </aside>
+              </>
+            ) : (
+              <>
+                <button onClick={() => setScreen("login")}>
+                  Member Sign In
+                </button>
+                <button onClick={() => setScreen("reset")}>
+                  Activate / Reset Account
+                </button>
+              </>
+            )}
+            <a href="/">Registration Portal</a>
+          </aside>
+        )}
         <main className="wrap">
           {message && (
             <div
@@ -187,6 +181,11 @@ export default function MemberPortal() {
           )}
           {loading ? (
             <div className="card">Loading your account…</div>
+          ) : !data && screen === "login" ? (
+            <div className="card">
+              <p>Opening Sign In…</p>
+              <a href="/login">Sign In</a>
+            </div>
           ) : !data ? (
             <div className="card" style={{ maxWidth: 520, margin: "auto" }}>
               <h1>

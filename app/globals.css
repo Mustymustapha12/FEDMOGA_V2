@@ -616,3 +616,120 @@ input[readonly] {
     padding: 10px;
   }
 }
+
+.public-shell {
+  max-width: 1200px;
+  margin: auto;
+  min-height: 70vh;
+}
+.public-shell main.wrap {
+  width: 100%;
+}
+.public-main {
+  padding: 40px 20px;
+}
+.login-card {
+  max-width: 520px;
+  margin: 24px auto;
+}
+.public-navigation {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.public-navigation a {
+  padding: 10px 16px;
+  text-decoration: none;
+  color: #125333;
+  border-radius: 8px;
+  font-weight: 600;
+}
+.public-navigation a:hover {
+  background: #e6f4eb;
+}
+.mobile-nav-toggle,
+.sidebar-toggle {
+  display: none;
+}
+.grouped-sidebar {
+  display: block;
+}
+.sidebar-groups details {
+  border-top: 1px solid #ffffff24;
+  margin-top: 8px;
+}
+.sidebar-groups summary {
+  padding: 14px 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.sidebar .submenu button {
+  font-size: 14px;
+  padding: 11px 12px 11px 22px;
+  margin: 3px 0;
+}
+.sidebar .dashboard-menu {
+  font-weight: 700;
+}
+.member-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .header .top {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .mobile-nav-toggle {
+    display: block;
+    margin-left: auto;
+  }
+  .public-navigation {
+    display: none;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .public-navigation.open {
+    display: flex;
+  }
+  .public-main {
+    padding: 20px 12px;
+  }
+  .grouped-sidebar {
+    display: block;
+    padding: 12px;
+  }
+  .sidebar .dashboard-menu {
+    width: auto;
+    display: inline-block;
+  }
+  .sidebar .sidebar-toggle {
+    display: inline-block;
+    width: auto;
+    float: right;
+  }
+  .grouped-sidebar .sidebar-groups {
+    display: none;
+    clear: both;
+  }
+  .grouped-sidebar.menu-open .sidebar-groups {
+    display: block;
+  }
+  .brand img {
+    width: 48px;
+    height: 48px;
+  }
+  .brand small {
+    font-size: 10px;
+  }
+}
+@media (max-width: 760px) {
+  .app-shell .grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .public-shell .hero {
+    min-width: 0;
+  }
+}
